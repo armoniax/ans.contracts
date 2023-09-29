@@ -1,0 +1,4 @@
+/Users/richardchen/work/wasm.contracts/ans.contracts/build/CMakeFiles/src_tools_contracts_project.dir
+/Users/richardchen/work/wasm.contracts/ans.contracts/build/CMakeFiles/contracts_unit_tests.dir
+/Users/richardchen/work/wasm.contracts/ans.contracts/build/CMakeFiles/edit_cache.dir
+/Users/richardchen/work/wasm.contracts/ans.contracts/build/CMakeFiles/rebuild_cache.dir
