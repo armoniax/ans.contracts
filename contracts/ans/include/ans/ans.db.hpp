@@ -34,12 +34,12 @@ namespace ProducerStatus {
 }
 
 namespace AnsType {
-    static constexpr eosio::name ACCT           { "account"_n    }; //special amax account names （4...11 chars)
     static constexpr eosio::name TXT            { "txt"_n        }; //any textual info, E.g. ETH address
     static constexpr eosio::name URI            { "uri"_n        }; //URI info
+    static constexpr eosio::name ADDR           { "addr"_n       }; //blockchain address like btc/eth address
     static constexpr eosio::name A              { "a"_n          }; //IPV4 address
-    static constexpr eosio::name AAAA           { "aaaa"_n       }; //IPV4 address
-    static constexpr eosio::name CNAME          { "cname"_n      }; //alias to uri
+    static constexpr eosio::name AAAA           { "aaaa"_n       }; //IPv6 address
+    static constexpr eosio::name CNAME          { "cname"_n      }; //alias to a-record
 }
 
 NTBL("global") global_t {

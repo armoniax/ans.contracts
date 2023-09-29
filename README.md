@@ -23,3 +23,6 @@ The above list will be extended/updated by `ANS DAO` along the way.
 - TXT: any key-value record 
 
 
+# Ownership cost
+
+# Name bidding market
