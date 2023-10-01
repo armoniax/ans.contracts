@@ -8,7 +8,7 @@ In order to achieve the most decentralization, domain name service itself must b
 
 # TLD domain names
 
-Top-level domain names are reserved and cannot be owned by common users. Following are the list of reserved TLDs:
+Top-level domain names are reserved for general public to use only. Following are the list of reserved TLDs:
 
 - com
 - eth
