@@ -25,9 +25,9 @@ The above list may be extended/updated by `ANS DAO` along the way.
 | URI   | uri content                                                                                           | DDNS           |
 | TXT   | any key-value record                                                                                  | DDNS           |
 
-* Token transfer with `alias`
+* Token transfers with `alias`
 
-  * Token transfer take the following fields:
+  * Token transfers take the following fields:
 ```
 $from $to $quant $memo
 ```
