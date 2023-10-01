@@ -32,7 +32,7 @@ The above list may be extended/updated by `ANS DAO` along the way.
 $from $to $quant $memo
 ```
   * for token transfer with account `alias`, it goes as following:
-    - `$to` will be a special contract that parses memo and takes the alias account out and get the actual destination account/address to use it inside an inline transfer
+    - `$to` will be a special contract that parses memo and extracts the alias account out and get the actual destination account/address to use it inside an inline transfer
     - `memo` contains the account `alias` and if ultimate memo is provided, it goes like this: `$alias:$memo`
 
 # Ownership cost
