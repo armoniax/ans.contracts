@@ -23,26 +23,46 @@ using namespace eosio;
 #define HASH256(str) sha256(const_cast<char*>(str.c_str()), str.size())
 
 static constexpr uint32_t MAX_LOGO_SIZE        = 512;
-static constexpr uint32_t MAX_TITLE_SIZE        = 2048;
+static constexpr uint32_t MAX_TITLE_SIZE       = 2048;
 
 #define TBL struct [[eosio::table, eosio::contract("ans")]]
 #define NTBL(name) struct [[eosio::table(name), eosio::contract("ans")]]
 
-namespace ProducerStatus {
-    static constexpr eosio::name DISABLE     { "disable"_n   };
-    static constexpr eosio::name ENABLE      { "enable"_n  };
-}
 
 namespace AnsType {
-    static constexpr eosio::name TXT            { "txt"_n        }; //any textual info, E.g. ETH address
-    static constexpr eosio::name URI            { "uri"_n        }; //URI info
-    static constexpr eosio::name ADDR           { "addr"_n       }; //blockchain address like btc/eth address
-    static constexpr eosio::name A              { "a"_n          }; //IPV4 address
-    static constexpr eosio::name AAAA           { "aaaa"_n       }; //IPv6 address
-    static constexpr eosio::name CNAME          { "cname"_n      }; //alias to a-record
+    static constexpr eosio::name ALIAS          { "alias"_n     }; //alias to account name/address
+
+    static constexpr eosio::name A              { "a"_n         }; //IPV4 address
+    static constexpr eosio::name AAAA           { "aaaa"_n      }; //IPv6 address
+    static constexpr eosio::name CNAME          { "cname"_n     }; //alias to a-record
+
+    static constexpr eosio::name BTC            { "btc"_n       }; //Bitcoin addr
+    static constexpr eosio::name ETH            { "eth"_n       }; //EVM type addr
+
+    static constexpr eosio::name URI            { "uri"_n       }; //URI info
+    static constexpr eosio::name TXT            { "txt"_n       }; //generic textual info
 }
 
+namespace AnsStatus {
+    static constexpr eosio::name SUBMITTED      { "submitted"   };
+    static constexpr eosio::name SUBMITTED      { "submitted"   };
+}  
+
+
 NTBL("global") global_t {
+    name                        admin;   
+    asset                       ns_monthly_fee_in_amax      = asset(1000'0000, "AMAX");     //[ 0.1 AMAX  ]
+    asset                       ns_monthly_fee_in_usdt      = asset( 100'0000, "MUSDT");    //[   1 MUSDT ]
+    uint8_t                     ns_max_pay_in_month         = 12;                           //12 months max to pay each time 
+    uint8_t                     ns_advance_pay_in_month     = 1;                            //1 month in advance to apy
+        
+    EOSLIB_SERIALIZE( global_t, (admin)
+                                (ns_monthly_fee_in_amax)(ns_monthly_fee_in_usdt)
+                                (ns_max_pay_in_month)(ns_advance_pay_in_month) )
+};
+
+//Monthly fee for getting a domain
+NTBL("priceconf") global_t {
     name                     admin;   
 
     EOSLIB_SERIALIZE( global_t, (admin) )
@@ -50,38 +70,35 @@ NTBL("global") global_t {
 
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
-//scope: AnsType
-TBL ans_account_t {
-    name                      owner; 
-    name                        status;                     // disable | enable
+//Scope: _self
+TBL ans_bidding_t {
+    uint64_t                    id;                         //PK
+    string                      ans_name;
+    string                      ans_content;
+};
+
+//scope: AnsType, Eg. a | aaaa | cname | eth | btc | uri | txt
+TBL ans_registry_t {
+    uint64_t                    id;                         //PK
+    string                      ans_name;                   //UK. E.g. 
+    string                      ans_content;
+    name                        owner; 
     time_point_sec              created_at;
-    time_point_sec              updated_at;
+    time_point_sec              expired_at = time_point();  //default is open for bidding
     
-    ans_account_t() {}
-    ans_account_t(const name& i): owner(i) {}
+    ans_registry_t() {}
+    ans_registry_t(const id& i): id(i) {}
 
-    uint64_t primary_key()const { return owner.value ; }
+    checksum256 by_ans_name() { return HASH256(ans_name); }
 
-    typedef eosio::multi_index< "producers"_n,  ans_account_t> table;
+    uint64_t primary_key()const { return id; }
 
-    EOSLIB_SERIALIZE( ans_account_t, (owner)(logo_uri)(org_name)(org_info)
+    typedef eosio::multi_index< "ansregistry"_n,  ans_registry_t> table;
+
+    EOSLIB_SERIALIZE( ans_registry_t, (owner)(logo_uri)(org_name)(org_info)
                                     (dao_code)(reward_shared_ratio)(manifesto)(issuance_plan)
                                     (reward_shared_plan)(status)
                                     (created_at)(updated_at))
-};
-
-TBL auth_t {
-    name                        auth;              //PK
-    set<name>                   actions;              //set of action types
-
-    auth_t() {}
-    auth_t(const name& i): auth(i) {}
-
-    uint64_t primary_key()const { return auth.value; }
-
-    typedef eosio::multi_index< "auths"_n,  auth_t > idx_t;
-
-    EOSLIB_SERIALIZE( auth_t, (auth)(actions) )
 };
 
 
