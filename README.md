@@ -37,7 +37,7 @@ $from $to $quant $memo
 
 # Ownership cost
 
-For the initial ownership, it costs `0.2 AMAX` and must wait for 24 hours before others to bid for higher prices and the highest wins the ownership eventually whereas all the other bidders inclding the first requester will be all refunded. 
+For the initial ownership, it costs `0.2 AMAX`. In order to make it effective, one must wait for 24 hours and let others bid for higher prices and the highest wins the ownership eventually whereas all the other bidders including the first requester will be all refunded while the initial request will be rewarded. 
 
 # Holding cost
 The owner of each domain name must pay either `0.1 AMAX` or `1 MUSDT` for at least one month, otherwise risking losing the ownership. The maximum duration one can pay for owning a domain each time is set in a global state variable. 
