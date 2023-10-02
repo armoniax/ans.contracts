@@ -81,14 +81,27 @@ void ans::ontransfer( name from, name to, asset quantity, string memo ) {
 }
 
 // owner actions
-ACTION ans::sellans( const name& submitter, const name& ans_type, const uint64_t& ans_id, const asset& ask_price ) {
+ACTION ans::setaskprice( const name& submitter, const name& ans_type, const uint64_t& ans_id, const asset& ask_price ) {
    require_auth( submitter );
 
+   auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
+   auto ans_itr            = ans_registry.find( ans_id );
+   CHECKC( ans_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
+   CHECKC( ans_itr->owner == submitter, err::NO_AUTH, "submitter is not the ans owner" )
+   CHECKC( ans_itr->ask_price != ask_price, err::PARAM_ERROR, "ask price is the same" )
+
+   db::set(ans_registry, ans_itr, _self, [&]( auto& r, bool is_new ) {
+      r.ask_price         = ask_price;
+   });
 };
 
 ACTION ans::acceptbid( const name& submitter, const name& ans_type, const uint64_t& ans_id, const name& bidder ) {
    require_auth( submitter );
-
+   
+   auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
+   auto ans_itr            = ans_registry.find( ans_id );
+   CHECKC( ans_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
+   CHECKC( ans_itr->owner == submitter, err::NO_AUTH, "submitter is not the ans owner" )
 };
 
 ACTION ans::setansvalue( const name& submitter, const name& ans_type, const uint64_t& ans_id, const string& ans_content ) {
@@ -98,8 +111,8 @@ ACTION ans::setansvalue( const name& submitter, const name& ans_type, const uint
    auto ans_itr            = ans_registry.find( ans_id );
    CHECKC( ans_content.size() < MAX_CONTENT_SIZE, err::PARAM_ERROR, "ans_content oversized" )
    CHECKC( ans_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
-   CHECKC( ans_itr->ans_content != ans_content, err::PARAM_ERROR, "ans_content is the same" )
    CHECKC( ans_itr->owner == submitter, err::NO_AUTH, "submitter is not the ans owner" )
+   CHECKC( ans_itr->ans_content != ans_content, err::PARAM_ERROR, "ans_content is the same" )
 
    db::set(ans_registry, ans_itr, _self, [&]( auto& r, bool is_new ) {
       r.ans_content         = ans_content;
