@@ -2,7 +2,9 @@ add_contract(ans.xtransfer ans.xtransfer ${CMAKE_CURRENT_SOURCE_DIR}/src/ans.xtr
 
 target_include_directories(ans.xtransfer
    PUBLIC
-   ${CMAKE_CURRENT_SOURCE_DIR}/include )
+   ${CMAKE_CURRENT_SOURCE_DIR}/include
+   ${CMAKE_CURRENT_SOURCE_DIR}/include/anx
+   ${CMAKE_CURRENT_SOURCE_DIR}/include/anx.xtransfer )
 
 set_target_properties(ans.xtransfer
    PROPERTIES

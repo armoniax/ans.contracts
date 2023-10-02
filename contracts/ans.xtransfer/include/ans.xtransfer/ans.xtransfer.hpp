@@ -13,7 +13,7 @@ using std::vector;
 using namespace wasm::db;
 using namespace eosio;
 
-static constexpr eosio::name active_perm{"active"_n};
+// static constexpr eosio::name active_perm{"active"_n};
 
 #define CHECKC(exp, code, msg) \
    { if (!(exp)) eosio::check(false, string("[[") + to_string((int)code) + string("]] ") + msg); }
