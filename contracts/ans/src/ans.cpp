@@ -229,7 +229,8 @@ void ans::_bid_ans(        const name& bidder,
    CHECKC( ans_reg_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ANS registry not found: " + ans_reg_itr->ans_name )
    CHECKC( ans_reg_itr->ask_price.amount > 0, err::NOT_STARTED, "ANS not yet for sale: " + ans_reg_itr->ans_name )
 
-   if( ans_bid_itr->bid_price >= ans_reg_itr->ask_price ) { //transfer ownership
+   if( ans_bid_itr->expired_at < current_time_point() || 
+       ans_bid_itr->bid_price >= ans_reg_itr->ask_price ) { //transfer ownership
       db::set(ans_registry, ans_reg_itr, _self, [&]( auto& r, bool is_new ) {
          r.owner           = bidder;
       });
