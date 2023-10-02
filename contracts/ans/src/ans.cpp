@@ -31,6 +31,7 @@ void ans::ontransfer( name from, name to, asset quantity, string memo ) {
    if( get_first_receiver() != SYS_BANK ) return;
 
    CHECKC( quantity.symbol == SYS_SYMBOL, err::SYMBOL_MISMATCH, "not sys_sysmbol" )
+   CHECKC( quantity.amount > 0, err::NOT_POSITIVE, "must only transfer positive quantity" )
 
    auto parts                 = split( memo, ":" );
    auto param_size            = parts.size();
@@ -89,6 +90,7 @@ ACTION ans::setaskprice( const name& submitter, const name& ans_type, const uint
    CHECKC( ans_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
    CHECKC( ans_itr->owner == submitter, err::NO_AUTH, "submitter is not the ans owner" )
    CHECKC( ans_itr->ask_price != ask_price, err::PARAM_ERROR, "ask price is the same" )
+   CHECKC( ans_itr->ask_price.amount >= 0, err::NOT_POSITIVE, "ask price cannot be negative" )
 
    db::set(ans_registry, ans_itr, _self, [&]( auto& r, bool is_new ) {
       r.ask_price         = ask_price;
@@ -209,7 +211,6 @@ void ans::_bid_ans(        const name& bidder,
 
    auto ans_bids           = ans_bid_t::tbl_t(_self, scope);
    auto ans_bid_itr        = ans_bids.find( ans_id );
-
    db::set(ans_bids, ans_bid_itr, _self, [&]( auto& b, bool is_new ) {
       if( is_new ) {
          b.bidder          = bidder;
@@ -224,7 +225,7 @@ void ans::_bid_ans(        const name& bidder,
 
    auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
    auto ans_reg_itr        = ans_registry.find( ans_id );
-   CHECKC( ans_reg_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found: " + ans_reg_itr->ans_name )
+   CHECKC( ans_reg_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ANS registry not found: " + ans_reg_itr->ans_name )
    CHECKC( ans_reg_itr->ask_price.amount > 0, err::NOT_STARTED, "ANS not yet for sale: " + ans_reg_itr->ans_name )
 
    if( ans_bid_itr->bid_price >= ans_reg_itr->ask_price ) { //transfer ownership
@@ -232,7 +233,7 @@ void ans::_bid_ans(        const name& bidder,
          r.owner           = bidder;
       });
 
-      // db::del( )//TODO
+      db::del( ans_bids, ans_bid_itr);
    }
 }
 
