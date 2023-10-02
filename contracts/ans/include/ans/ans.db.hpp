@@ -90,10 +90,10 @@ const std::map<name, uint64_t> AnsTypeVals {
 };
 
 struct conf_st {
-    asset                       ns_monthly_fee              = asset(1000'0000, SYS_SYMBOL); //[ 0.1 AMAX  ]
-    uint16_t                     ns_bid_increase_min_rate   = 1000;                         //10% * 10K (boost)
-    uint16_t                     ns_max_pay_in_month        = 12;                           //12 months max to pay each time 
-    uint16_t                     ns_advance_pay_in_month    = 1;       
+    asset                       ns_monthly_fee             = asset(1000'0000, SYS_SYMBOL); //[ 0.1 AMAX  ]
+    uint16_t                    ns_bid_increase_min_rate   = 1000;                         //10% * 10K (boost)
+    uint16_t                    ns_max_pay_in_month        = 12;                           //12 months max to pay each time 
+    uint16_t                    ns_advance_pay_in_month    = 1;       
 };
 
 NTBL("global") global_t {
