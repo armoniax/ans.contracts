@@ -80,13 +80,16 @@ namespace AnsType {
     static constexpr eosio::name ETH            { "eth"_n       }; //EVM type addr
 }
 
+//once used, it can nenver be changed to avoid data dirtyness issue
 const std::map<name, uint64_t> AnsTypeVals {
-    { AnsType::ALIAS,           0 },
-    { AnsType::A,               1 },
-    { AnsType::AAAA,            2 },
-    { AnsType::CNAME,           3 },
-    { AnsType::URI,             10 },
-    { AnsType::TXT,             11 },
+    { AnsType::ALIAS,           0   },
+    { AnsType::A,               1   },
+    { AnsType::AAAA,            2   },
+    { AnsType::CNAME,           3   },
+    { AnsType::URI,             8   },
+    { AnsType::TXT,             9   },
+    { AnsType::BTC,             100 },
+    { AnsType::ETH,             101 },
 };
 
 struct conf_st {
