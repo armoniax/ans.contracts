@@ -111,7 +111,7 @@ NTBL("global") global_t {
 
     EOSLIB_SERIALIZE( global_t, (admin)(fee_collector)
                                 (ns_monthly_fee)(ns_bid_transfer_fee_rate)(ns_bid_increase_min_rate)
-                                (ns_max_pay_in_month)(ns_advance_pay_in_month) )
+                                (ns_max_pay_in_month)(ns_advance_pay_in_month)(ns_bid_lock_days) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
