@@ -990,6 +990,7 @@ ans/CMakeFiles/ans.dir/src/ans.cpp.obj: /Users/richardchen/work/wasm.contracts/a
   /usr/local/amax.cdt/include/eosiolib/contracts/eosio/dispatcher.hpp \
   /usr/local/amax.cdt/include/eosiolib/contracts/eosio/contract.hpp \
   /Users/richardchen/work/wasm.contracts/ans.contracts/contracts/ans/include/safe.hpp \
+  /Users/richardchen/work/wasm.contracts/ans.contracts/contracts/ans/include/amax.token.hpp \
   /Users/richardchen/work/wasm.contracts/ans.contracts/contracts/ans/include/wasm_db.hpp \
   /Users/richardchen/work/wasm.contracts/ans.contracts/contracts/ans/include/math.hpp
 
@@ -2019,6 +2020,8 @@ ans/CMakeFiles/ans.dir/src/ans.cpp.obj: /Users/richardchen/work/wasm.contracts/a
 /usr/local/amax.cdt/include/boost/hana/functional/apply.hpp:
 
 /usr/local/amax.cdt/include/libcxx/cstddef:
+
+/Users/richardchen/work/wasm.contracts/ans.contracts/contracts/ans/include/amax.token.hpp:
 
 /usr/local/amax.cdt/include/boost/mpl/apply_wrap.hpp:
 

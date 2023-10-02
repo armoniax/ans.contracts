@@ -103,6 +103,7 @@ ACTION ans::acceptbid( const name& submitter, const name& ans_type, const uint64
    auto scope              = _get_ans_bid_scope( ans_type_id, ans_id );
    auto ans_bids           = ans_bid_t::tbl_t(_self, scope);
    auto ans_bid_itr        = ans_bids.find( ans_id );
+   CHECKC( ans_bid_itr != ans_bids.end(), err::RECORD_NOT_FOUND, "ans bid not found for ans_id: " + to_string(ans_id) )
    auto bid_price          = ans_bid_itr->bid_price;
 
    auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
@@ -110,18 +111,19 @@ ACTION ans::acceptbid( const name& submitter, const name& ans_type, const uint64
    CHECKC( ans_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
    CHECKC( ans_itr->owner == submitter, err::NO_AUTH, "submitter is not the ans owner" )
 
-
-   db::set(ans_bids, ans_bid_itr, _self, [&]( auto& b, bool is_new ) {
-      if( is_new ) {
-         b.bidder          = bidder;
-         b.bid_price       = bid_price;
-         b.bidden_at       = current_time_point();
-
-      } else {
-         b.bid_price       += bid_price;
-         b.bidden_at       = current_time_point();
-      }
+   //ownership transfer
+   db::set( ans_registry, ans_itr, _self, [&]( auto& r, bool is_new ) {
+      r.owner              = ans_bid_itr->bidder; 
    });
+
+   auto fee = bid_price;
+   fee.amount = div( mul( bid_price.amount, _g.ns_bid_transfer_fee_rate, SYS_PRECISION ), RATIO_BOOST, SYS_PRECISION ); 
+   TRANSFER( SYS_BANK, _g.fee_collector, fee, "ans bid transfer fee for bidder: " + ans_bid_itr->bidder.to_string() )
+   bid_price -= fee;
+   if( bid_price.amount > 0 ) {
+      TRANSFER( SYS_BANK, submitter, bid_price, "accept ans bid by: " + ans_bid_itr->bidder.to_string() )
+   }
+   db::del( ans_bids, ans_bid_itr );
 };
 
 ACTION ans::setansvalue( const name& submitter, const name& ans_type, const uint64_t& ans_id, const string& ans_content ) {

@@ -56,6 +56,7 @@ static constexpr uint32_t MAX_ANS_KEY_SIZE      = 64;
 static constexpr uint32_t MAX_CONTENT_SIZE      = 2048;
 static constexpr uint32_t DAY_SECONDS           = 3600 * 24;
 static constexpr uint32_t MONTH_SECONDS         = 3600 * 24 * 30;
+static constexpr uint32_t RATIO_BOOST           = 10000;
 
 static constexpr eosio::name SYS_BANK           {"amax.token"_n};
 static constexpr symbol SYS_SYMBOL              = symbol(symbol_code("AMAX"), 8);
@@ -99,13 +100,14 @@ NTBL("global") global_t {
     name                        admin;
     name                        fee_collector               = "amax.devfund"_n;
     asset                       ns_monthly_fee              = asset(1000'0000, SYS_SYMBOL); //[ 0.1 AMAX  ]
+    uint16_t                    ns_bid_transfer_fee_rate    = 10;                           //0.1% * 10K (boost)
     uint16_t                    ns_bid_increase_min_rate    = 1000;                         //10% * 10K (boost)
     uint16_t                    ns_max_pay_in_month         = 12;                           //12 months max to pay each time 
     uint16_t                    ns_advance_pay_in_month     = 1;                            //1 month in advance to apy
     uint16_t                    ns_bid_lock_days            = 3;                            //every bid must locked by 3 days before redemption
 
     EOSLIB_SERIALIZE( global_t, (admin)(fee_collector)
-                                (ns_monthly_fee)(ns_bid_increase_min_rate)
+                                (ns_monthly_fee)(ns_bid_transfer_fee_rate)(ns_bid_increase_min_rate)
                                 (ns_max_pay_in_month)(ns_advance_pay_in_month) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
