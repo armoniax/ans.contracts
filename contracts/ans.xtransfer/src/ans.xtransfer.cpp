@@ -2,6 +2,9 @@
 #include <ans/ans.db.hpp>
 #include "utils.hpp"
 
+#include "amax.token.hpp"
+
+
 namespace amax {
 
 using namespace eosio;

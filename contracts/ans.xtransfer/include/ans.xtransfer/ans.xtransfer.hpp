@@ -1,10 +1,5 @@
 #pragma once
-
-
-#include "amax.token.hpp"
-
 #include <wasm_db.hpp>
-
 #include <eosio/asset.hpp>
 #include <eosio/action.hpp>
 
@@ -64,7 +59,6 @@ class [[eosio::contract("ans.xtransfer")]] ans_xtransfer : public contract {
       using contract::contract;
   
    ans_xtransfer(eosio::name receiver, eosio::name code, datastream<const char*> ds): contract(receiver, code, ds) {}
-   ~ans_xtransfer() { }
 
    /**
     * @brief ANS entry applicant, owner or bidder to send AMAX
