@@ -81,13 +81,30 @@ void ans::ontransfer( name from, name to, asset quantity, string memo ) {
 }
 
 // owner actions
-void ans::sellans( const name& submitter, const string& ans_name, const asset& ask_price ) {
+ACTION ans::sellans( const name& submitter, const name& ans_type, const uint64_t& ans_id, const asset& ask_price ) {
+   require_auth( submitter );
 
 };
 
-void ans::acceptbid( const name& submitter, const uint64_t& ans_id, const name& bidder ) {
+ACTION ans::acceptbid( const name& submitter, const name& ans_type, const uint64_t& ans_id, const name& bidder ) {
+   require_auth( submitter );
 
 };
+
+ACTION ans::setansvalue( const name& submitter, const name& ans_type, const uint64_t& ans_id, const string& ans_content ) {
+   require_auth( submitter );
+
+   auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
+   auto ans_itr            = ans_registry.find( ans_id );
+   CHECKC( ans_content.size() < MAX_CONTENT_SIZE, err::PARAM_ERROR, "ans_content oversized" )
+   CHECKC( ans_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
+   CHECKC( ans_itr->ans_content != ans_content, err::PARAM_ERROR, "ans_content is the same" )
+   CHECKC( ans_itr->owner == submitter, err::NO_AUTH, "submitter is not the ans owner" )
+
+   db::set(ans_registry, ans_itr, _self, [&]( auto& r, bool is_new ) {
+      r.ans_content         = ans_content;
+   });
+}
 
 ///////// private functions //////////////
 void ans::_add_ans(        const name& submitter, 
@@ -119,9 +136,9 @@ void ans::_renew_ans(      const name& owner,
                            const uint64_t& duration ) {
 
    auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
-   auto ans_reg_itr        = ans_registry.find( ans_id );
+   auto ans_itr            = ans_registry.find( ans_id );
 
-   db::set(ans_registry, ans_reg_itr, _self, [&]( auto& r, bool is_new ) {
+   db::set(ans_registry, ans_itr, _self, [&]( auto& r, bool is_new ) {
       CHECKC( !is_new, err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
 
       r.expired_at         = r.expired_at + duration;

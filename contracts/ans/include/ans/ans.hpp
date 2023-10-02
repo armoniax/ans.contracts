@@ -110,8 +110,9 @@ class [[eosio::contract("ans")]] ans : public contract {
    void ontransfer( name from, name to, asset quantity, string memo );
 
    // owner actions
-   ACTION sellans( const name& submitter, const string& ans_name, const asset& ask_price );
-   ACTION acceptbid( const name& submitter, const uint64_t& ans_id, const name& bidder );
+   ACTION sellans( const name& submitter, const name& ans_type, const uint64_t& ans_id, const asset& ask_price );
+   ACTION acceptbid( const name& submitter, const name& ans_type, const uint64_t& ans_id, const name& bidder );
+   ACTION setansvalue( const name& submitter, const name& ans_type, const uint64_t& ans_id, const string& ans_content );
 
    //bidder actions
    
