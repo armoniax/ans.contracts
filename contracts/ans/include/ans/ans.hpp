@@ -2,6 +2,8 @@
 
 
 #include "ans.db.hpp"
+#include "amax.token.hpp"
+
 #include <wasm_db.hpp>
 
 #include <eosio/asset.hpp>
@@ -13,19 +15,14 @@ namespace amax {
 
 using std::string;
 using std::vector;
-
-#define CHECKC(exp, code, msg) \
-   { if (!(exp)) eosio::check(false, string("[[") + to_string((int)code) + string("]] ")  \
-                                    + string("[[") + _self.to_string() + string("]] ") + msg); }
-
-#define TRANSFER(bank, to, quantity, memo) \
-    {	mtoken::transfer_action act{ bank, { {_self, active_perm} } };\
-			act.send( _self, to, quantity , memo );}
          
 using namespace wasm::db;
 using namespace eosio;
 
 static constexpr eosio::name active_perm{"active"_n};
+
+#define CHECKC(exp, code, msg) \
+   { if (!(exp)) eosio::check(false, string("[[") + to_string((int)code) + string("]] ") + msg); }
 
 
 enum class err: uint8_t {
@@ -115,9 +112,10 @@ class [[eosio::contract("ans")]] ans : public contract {
    ACTION setansvalue( const name& submitter, const name& ans_type, const uint64_t& ans_id, const string& ans_content );
 
    //bidder actions
-   
+   ACTION cancelbid( const name& submitter, const name& ans_type, const uint64_t& ans_id );
+
    //query actions
-   ACTION ansbidscope( const name& ans_type, const uint64_t& ans_id) {
+   ACTION bidscope( const name& ans_type, const uint64_t& ans_id) {
          check( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), "ans type invalid: " + ans_type.to_string() );
 
          auto ans_type_id  = AnsTypeVals.at( ans_type );

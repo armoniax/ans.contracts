@@ -98,10 +98,30 @@ ACTION ans::setaskprice( const name& submitter, const name& ans_type, const uint
 ACTION ans::acceptbid( const name& submitter, const name& ans_type, const uint64_t& ans_id, const name& bidder ) {
    require_auth( submitter );
    
+   CHECKC( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), err::PARAM_ERROR, "ans_type invalid: " + ans_type.to_string() )
+   auto ans_type_id        = AnsTypeVals.at( ans_type );
+   auto scope              = _get_ans_bid_scope( ans_type_id, ans_id );
+   auto ans_bids           = ans_bid_t::tbl_t(_self, scope);
+   auto ans_bid_itr        = ans_bids.find( ans_id );
+   auto bid_price          = ans_bid_itr->bid_price;
+
    auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
    auto ans_itr            = ans_registry.find( ans_id );
    CHECKC( ans_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
    CHECKC( ans_itr->owner == submitter, err::NO_AUTH, "submitter is not the ans owner" )
+
+
+   db::set(ans_bids, ans_bid_itr, _self, [&]( auto& b, bool is_new ) {
+      if( is_new ) {
+         b.bidder          = bidder;
+         b.bid_price       = bid_price;
+         b.bidden_at       = current_time_point();
+
+      } else {
+         b.bid_price       += bid_price;
+         b.bidden_at       = current_time_point();
+      }
+   });
 };
 
 ACTION ans::setansvalue( const name& submitter, const name& ans_type, const uint64_t& ans_id, const string& ans_content ) {
@@ -119,7 +139,25 @@ ACTION ans::setansvalue( const name& submitter, const name& ans_type, const uint
    });
 }
 
-///////// private functions //////////////
+//bidder actions
+ACTION ans::cancelbid( const name& submitter, const name& ans_type, const uint64_t& ans_id ) {
+   require_auth( submitter );
+   
+   CHECKC( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), err::PARAM_ERROR, "ans_type invalid: " + ans_type.to_string() )
+   auto ans_type_id        = AnsTypeVals.at( ans_type );
+   auto scope              = _get_ans_bid_scope( ans_type_id, ans_id );
+   auto ans_bids           = ans_bid_t::tbl_t(_self, scope);
+   auto ans_bid_itr        = ans_bids.find( ans_id );
+   CHECKC( ans_bid_itr != ans_bids.end(), err::RECORD_NOT_FOUND, "ans id not found with bids: " + to_string(ans_id) )
+   CHECKC( ans_bid_itr->bidder == submitter, err::NO_AUTH, "no auth to cancel bid for " + ans_bid_itr->bidder.to_string() )
+
+   auto bid_price          = ans_bid_itr->bid_price;
+   TRANSFER( SYS_BANK, submitter, bid_price, "ans bid refund" )
+   db::del( ans_bids, ans_bid_itr );
+}
+
+////////////////////////////////////   private functions    /////////////////////////////////////////////////////////// 
+
 void ans::_add_ans(        const name& submitter, 
                            const name& ans_type, 
                            const string& ans_name, 

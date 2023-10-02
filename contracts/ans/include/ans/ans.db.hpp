@@ -18,7 +18,7 @@
 namespace db {
 
     template<typename table, typename Lambda>
-    inline void set( table &tbl,
+    inline void set( table& tbl,
                      typename table::const_iterator& itr, 
                      const eosio::name& ram_payer,
                      Lambda&& setter )
@@ -34,14 +34,13 @@ namespace db {
         }
     }
 
-//     template<typename table, typename Lambda>
-//     inline void set( table &tbl, 
-//                      typename table::const_iterator& itr, 
-//                      const eosio::name& emplace_payer,
-//                      Lambda&& setter )
-//    {
-//       set(tbl, itr, emplace_payer, eosio::same_payer, setter);
-//    }
+    template<typename table>
+    inline void del( table& tbl, typename table::const_iterator& itr) 
+    {
+        if (itr != tbl.end()) {
+            tbl.erase( itr );
+        }
+    }
 
 }// namespace db
 
