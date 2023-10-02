@@ -9,163 +9,161 @@
 
 namespace amax {
 
-
-namespace db {
-
-    template<typename table, typename Lambda>
-    inline void set(table &tbl,  typename table::const_iterator& itr, const eosio::name& emplaced_payer,
-            const eosio::name& modified_payer, Lambda&& setter )
-   {
-        if (itr == tbl.end()) {
-            tbl.emplace(emplaced_payer, [&]( auto& p ) {
-               setter(p, true);
-            });
-        } else {
-            tbl.modify(itr, modified_payer, [&]( auto& p ) {
-               setter(p, false);
-            });
-        }
-    }
-
-    template<typename table, typename Lambda>
-    inline void set(table &tbl,  typename table::const_iterator& itr, const eosio::name& emplaced_payer,
-               Lambda&& setter )
-   {
-      set(tbl, itr, emplaced_payer, eosio::same_payer, setter);
-   }
-
-}// namespace db
-
-
+using namespace eosio;
 using namespace std;
-using namespace amax;
-using namespace mdao;
-
-#define CHECKC(exp, code, msg) \
-   { if (!(exp)) eosio::check(false, string("[[") + to_string((int)code) + string("]] ")  \
-                                    + string("[[") + _self.to_string() + string("]] ") + msg); }
+using namespace db;
+using namespace wasm::safemath;
 
 
-   void ans::init( const name& admin){
-      require_auth( _self );
+/**
+ * @brief ANS entry applicant, owner or bidder to send AMAX
+ *       - case-1: applicant to pay for new entry
+ *          @memo: reg:$ans_type:$ans_name:$ans_content:$ask_price
+ *       - case-2: to pay for renewing/extending the period
+ *          @memo: renew:$owner:$ans_type:$ans_id
+ *       - case-3: bidder to pay for bidding for an existing ANS entry
+ *          @memo: bid:$ans_type:$ans_id
+ */
+[[eosio::on_notify("amax.token::transfer")]]
+void ans::ontransfer( name from, name to, asset quantity, string memo ) {
+   if( _self == from ) return;
+   if( to != _self ) return;
+   if( get_first_receiver() != SYS_BANK ) return;
 
-      CHECKC( is_account(admin),err::ACCOUNT_INVALID,"admin invalid:" + admin.to_string())
-      // CHECKC( is_account(dao_contract),err::ACCOUNT_INVALID,"dao_contract invalid:" + dao_contract.to_string())
+   CHECKC( quantity.symbol == SYS_SYMBOL, err::SYMBOL_MISMATCH, "not sys_sysmbol" )
 
-      _gstate.admin = admin;
-      // _gstate.dao_contract = dao_contract;
-
-   }
+   auto parts                 = split( memo, ":" );
+   auto param_size            = parts.size();
+   CHECKC( param_size >= 3,   err::PARAM_ERROR, "invalid memo format" );
+   auto flag                  = parts[0];
    
+   CHECKC( quantity >= _g.ns_monthly_fee, err::FEE_INSUFFICIENT, "fees sent insufficient for a single month" )
 
-   void ans::applybp(const name& owner,
-                              const string& logo_uri,
-                              const string& org_name,
-                              const string& org_info,
-                              const name& dao_code,
-                              const string& reward_shared_plan,
-                              const string& manifesto,
-                              const string& issuance_plan){
-      require_auth( owner );
+   if( flag == "reg" ) {   //register a new ANS entry, @memo: reg:$ans_type:$ans_name:$ans_content
+      CHECKC(param_size == 4, err::MEMO_FORMAT_ERROR, "reg memo format invalid" )
+      auto ans_type           = name(parts[1]);
+      auto ans_name           = string(parts[2]);
+      auto ans_content        = string(parts[3]);
+      CHECKC( ans_name.size() < MAX_ANS_KEY_SIZE, err::OVERSIZED, "ANS name oversized" )
+      CHECKC( ans_content.size() < MAX_CONTENT_SIZE, err::OVERSIZED, "ANS content oversized" )
+      CHECKC( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), err::PARAM_ERROR, "reg memo has incorrect ans_type" )
+     
 
-      auto prod_itr = _producer_tbl.find(owner.value);
-      CHECKC( prod_itr == _producer_tbl.end(),err::RECORD_EXISTING,"Application submitted:" + owner.to_string())
-
-      _set_producer(owner,logo_uri,org_name,org_info,dao_code,reward_shared_plan,manifesto,issuance_plan);
-   }
-
-   void ans::updatebp(const name& owner,
-                              const string& logo_uri,
-                              const string& org_name,
-                              const string& org_info,
-                              const name& dao_code,
-                              const string& reward_shared_plan,
-                              const string& manifesto,
-                              const string& issuance_plan){
-
-      require_auth( owner );
-      auto prod_itr = _producer_tbl.find(owner.value);
-      CHECKC( prod_itr != _producer_tbl.end(),err::RECORD_EXISTING,"Application submitted:" + owner.to_string())
-
-      _set_producer(owner,logo_uri,org_name,org_info,dao_code,reward_shared_plan,manifesto,issuance_plan);
-   }
-
-   void ans::addproducer(const name& submiter,
-                              const name& owner,
-                              const string& logo_uri,
-                              const string& org_name,
-                              const string& org_info,
-                              const name& dao_code,
-                              const string& reward_shared_plan,
-                              const string& manifesto,
-                              const string& issuance_plan){
-      require_auth( submiter );
-      CHECKC( submiter == _gstate.admin,err::NO_AUTH,"Missing required authority of admin" )
-
-      _set_producer(owner,logo_uri,org_name,org_info,dao_code,reward_shared_plan,manifesto,issuance_plan);
-   }
+      auto duration_seconds   = mul( MONTH_SECONDS, 
+                                    div( quantity.amount, _g.ns_monthly_fee.amount, SYS_PRECISION ), 
+                                    SYS_PRECISION );
+      _add_ans( from, ans_type, ans_name, ans_content, duration_seconds);
 
 
-   void ans::setstatus( const name& submiter, const name& owner, const name& status){
+   } else if( flag == "renew" ) { //renew an existing ANS entry, @memo: renew:$owner:$ans_type:$ans_id
+      CHECKC(parts.size() == 4, err::MEMO_FORMAT_ERROR, "renew memo format invalid" )
+      auto owner              = name(parts[1]);
+      auto ans_type           = name(parts[2]);
+      auto ans_id             = stoi( string(parts[3]) );
+      CHECKC( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), err::PARAM_ERROR, "renew memo has incorrect ans_type" )
 
-      require_auth( submiter );
-      CHECKC( submiter == _gstate.admin,err::NO_AUTH,"Missing required authority of admin" )
+      auto duration_seconds   = mul( MONTH_SECONDS, 
+                                    div( quantity.amount, _g.ns_monthly_fee.amount, SYS_PRECISION ), 
+                                    SYS_PRECISION );
 
-      auto prod_itr = _producer_tbl.find(owner.value);
-      CHECKC( prod_itr != _producer_tbl.end(),err::RECORD_NOT_FOUND,"producer not found:" + owner.to_string())
-      CHECKC( prod_itr-> status != status, err::STATUS_ERROR,"No changes" )
-      CHECKC( status == ProducerStatus::ENABLE ||  status == ProducerStatus::DISABLE,err::PARAM_ERROR,"Unsupported state")
-      
-      db::set(_producer_tbl, prod_itr, _self , [&]( auto& p, bool is_new ) {
-         if (is_new) {
-            p.owner        =  owner;
-            p.created_at   = current_time_point();
-         }
-         p.status          = status;
-         p.updated_at      = current_time_point();
-      });
+      _renew_ans( owner, ans_type, ans_id, duration_seconds);
+
+   } else if( flag == "bid" ) {  //bid an existing ANS entry, @memo: bid:$ans_scope:$ans_id
+      CHECKC(parts.size() == 3, err::MEMO_FORMAT_ERROR, "bid memo format invalid" )
+      auto ans_type           = name(parts[1]);
+      auto ans_id             = stoi( string(parts[2]) );
    
+      _bid_ans(from, quantity, ans_type, ans_id);
+
+   } else {
+      CHECKC( false, err::MEMO_FORMAT_ERROR, "memo header error" )
    }
+}
 
-   void ans::_set_producer(const name& owner,
-                              const string& logo_uri,
-                              const string& org_name,
-                              const string& org_info,
-                              const name& dao_code,
-                              const string& reward_shared_plan,
-                              const string& manifesto,
-                              const string& issuance_plan){
-      CHECKC( logo_uri.size() <= MAX_LOGO_SIZE ,err::OVERSIZED ,"logo size must be <= " + to_string(MAX_LOGO_SIZE))
-      CHECKC( org_name.size() <= MAX_TITLE_SIZE ,err::OVERSIZED ,"org_name size must be <= " + to_string(MAX_TITLE_SIZE))
-      CHECKC( org_info.size() <= MAX_TITLE_SIZE ,err::OVERSIZED ,"org_info size must be <= " + to_string(MAX_TITLE_SIZE))
-      // CHECKC( manifesto.size() <= MAX_TITLE_SIZE ,err::OVERSIZED ,"manifesto size must be <= " + to_string(MAX_TITLE_SIZE))
-      CHECKC( issuance_plan.size() <= MAX_TITLE_SIZE ,err::OVERSIZED ,"issuance_plan size must be <= " + to_string(MAX_TITLE_SIZE))
-      CHECKC( reward_shared_plan.size() <= MAX_TITLE_SIZE, err::OVERSIZED, "reward_shared_ratio is too large than 10000");
+// owner actions
+void ans::sellans( const name& submitter, const string& ans_name, const asset& ask_price ) {
 
-      // dao_info_t::idx_t dao_info( _gstate.dao_contract, _gstate.dao_contract.value);
+};
 
-      // auto dao_itr = dao_info.find( dao_code.value);
-      // CHECKC( dao_itr != dao_info.end(),err::RECORD_NOT_FOUND,"dao_code does not exist:" + dao_code.to_string())
+void ans::acceptbid( const name& submitter, const uint64_t& ans_id, const name& bidder ) {
 
-      auto prod_itr = _producer_tbl.find(owner.value);
-      // CHECKC( prod_itr != _producer_tbl.end(),err::RECORD_EXISTING,"Application submitted:" + owner.to_string())
+};
 
-      db::set(_producer_tbl, prod_itr, _self, [&]( auto& p, bool is_new ) {
-         if (is_new) {
-            p.owner =  owner;
-            p.created_at = current_time_point();
-            p.status = ProducerStatus::DISABLE;
-         }
+///////// private functions //////////////
+void ans::_add_ans(        const name& submitter, 
+                           const name& ans_type, 
+                           const string& ans_name, 
+                           const string& ans_content, 
+                           const uint64_t& duration ) {
 
-         p.logo_uri              = logo_uri;
-         p.org_name              = org_name;
-         p.org_info              = org_info;
-         p.dao_code              = dao_code;
-         p.reward_shared_plan    = reward_shared_plan;
-         p.manifesto            = manifesto;
-         p.issuance_plan         = issuance_plan;
-         // p.last_edited_at        = current_time_point();
+   auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
+   auto ans_name_idx       = ans_registry.get_index<"nameidx"_n>();
+   auto ans_reg_itr        = ans_name_idx.find( HASH256(ans_name) );
+   CHECKC( ans_reg_itr == ans_name_idx.end(), err::RECORD_EXISTING, "ans registry already exists: " + ans_name )
+
+   auto ans_itr            = ans_registry.end();
+   db::set(ans_registry, ans_itr, _self, [&]( auto& r, bool is_new ) {
+      r.id                 = ans_registry.available_primary_key();
+      r.ans_name           = ans_name;
+      r.ans_content        = ans_content;
+      r.owner              = submitter;
+      r.ask_price          = asset(0, SYS_SYMBOL);
+      r.created_at         = current_time_point();
+      r.expired_at         = r.created_at + duration;
+   });
+}
+    
+void ans::_renew_ans(      const name& owner, 
+                           const name& ans_type, 
+                           const uint64_t& ans_id, 
+                           const uint64_t& duration ) {
+
+   auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
+   auto ans_reg_itr        = ans_registry.find( ans_id );
+
+   db::set(ans_registry, ans_reg_itr, _self, [&]( auto& r, bool is_new ) {
+      CHECKC( !is_new, err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
+
+      r.expired_at         = r.expired_at + duration;
+   });
+}
+
+void ans::_bid_ans(        const name& bidder, 
+                           const asset& bid_price, 
+                           const name& ans_type, 
+                           const uint64_t& ans_id ) {
+
+   CHECKC( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), err::PARAM_ERROR, "renew memo has incorrect ans_type" )
+   auto ans_type_id        = AnsTypeVals.at( ans_type );
+   auto scope              = _get_ans_bid_scope( ans_type_id, ans_id );
+
+   auto ans_bids           = ans_bid_t::tbl_t(_self, scope);
+   auto ans_bid_itr        = ans_bids.find( ans_id );
+
+   db::set(ans_bids, ans_bid_itr, _self, [&]( auto& b, bool is_new ) {
+      if( is_new ) {
+         b.bidder          = bidder;
+         b.bid_price       = bid_price;
+         b.bidden_at       = current_time_point();
+
+      } else {
+         b.bid_price       += bid_price;
+         b.bidden_at       = current_time_point();
+      }
+   });
+
+   auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
+   auto ans_reg_itr        = ans_registry.find( ans_id );
+   CHECKC( ans_reg_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found: " + ans_reg_itr->ans_name )
+   CHECKC( ans_reg_itr->ask_price.amount > 0, err::NOT_STARTED, "ANS not yet for sale: " + ans_reg_itr->ans_name )
+
+   if( ans_bid_itr->bid_price >= ans_reg_itr->ask_price ) { //transfer ownership
+      db::set(ans_registry, ans_reg_itr, _self, [&]( auto& r, bool is_new ) {
+         r.owner           = bidder;
       });
+
+      // db::del( )//TODO
    }
+}
 
 }//namespace amax

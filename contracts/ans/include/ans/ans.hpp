@@ -14,6 +14,10 @@ namespace amax {
 using std::string;
 using std::vector;
 
+#define CHECKC(exp, code, msg) \
+   { if (!(exp)) eosio::check(false, string("[[") + to_string((int)code) + string("]] ")  \
+                                    + string("[[") + _self.to_string() + string("]] ") + msg); }
+
 #define TRANSFER(bank, to, quantity, memo) \
     {	mtoken::transfer_action act{ bank, { {_self, active_perm} } };\
 			act.send( _self, to, quantity , memo );}
@@ -21,7 +25,6 @@ using std::vector;
 using namespace wasm::db;
 using namespace eosio;
 
-static constexpr name      NFT_BANK    = "did.ntoken"_n;
 static constexpr eosio::name active_perm{"active"_n};
 
 
@@ -59,70 +62,89 @@ enum class err: uint8_t {
  * Similarly, the `stats` multi-index table, holds instances of `currency_stats` objects for each row, which contains information about current supply, maximum supply, and the creator account for a symbol token. The `stats` table is scoped to the token symbol.  Therefore, when one queries the `stats` table for a token symbol the result is one single entry/row corresponding to the queried symbol token if it was previously created, or nothing, otherwise.
  */
 class [[eosio::contract("ans")]] ans : public contract {
-   
    private:
-      dbc                 _dbc;
+      dbc                     _dbc;
+      global_singleton        _global;
+      global_t                _g;
+
    public:
       using contract::contract;
   
    ans(eosio::name receiver, eosio::name code, datastream<const char*> ds): contract(receiver, code, ds),
          _dbc(get_self()),
-         _global(get_self(), get_self().value),
-         _producer_tbl(get_self(), get_self().value)
+         _global(get_self(), get_self().value)
     {
-        _gstate = _global.exists() ? _global.get() : global_t{};
+        _g = _global.exists() ? _global.get() : global_t{};
         
     }
 
-    ~ans() { _global.set( _gstate, get_self() ); }
+    ~ans() { _global.set( _g, get_self() ); }
 
+   //admin actions
+   ACTION init( const name& admin, const name& fee_collector) {
+      CHECKC( has_auth(_self) || has_auth( _g.admin ), err::NO_AUTH, "no auth" )
 
-   ACTION init( const name& admin);
+      _g.admin                                         = admin;
+      _g.fee_collector                                 = fee_collector;
+   };
 
+   ACTION setconf( conf_st& conf ) { 
+      require_auth( _g.admin );
 
-   ACTION applybp( const name& owner,
-                  const string& logo_uri,
-                  const string& org_name,
-                  const string& org_info,
-                  const name& dao_code,
-                  const string& reward_shared_plan,
-                  const string& manifesto,
-                  const string& issuance_plan);
+      _g.ns_monthly_fee                        = conf.ns_monthly_fee;
+      _g.ns_bid_increase_min_rate                      = conf.ns_bid_increase_min_rate;
+      _g.ns_max_pay_in_month                           = conf.ns_max_pay_in_month;
+      _g.ns_advance_pay_in_month                       = conf.ns_advance_pay_in_month;       
+   }
 
+   /**
+    * @brief ANS entry applicant, owner or bidder to send AMAX
+    *       - case-1: applicant to pay for new entry
+    *          @memo: reg:$ans_scope:$ans_name:$ans_content:$ask_price
+    *       - case-2: owner to pay for renewing/extending the period
+    *          @memo: renew:$ans_scope:$ans_id
+    *       - case-3: bidder to pay for bidding for an existing ANS entry
+    *          @memo: bid:$ans_scope:$ans_id
+    */
+   [[eosio::on_notify("amax.token::transfer")]]
+   void ontransfer( name from, name to, asset quantity, string memo );
 
-   ACTION updatebp(const name& owner,
-                  const string& logo_uri,
-                  const string& org_name,
-                  const string& org_info,
-                  const name& dao_code,
-                  const string& reward_shared_plan,
-                  const string& manifesto,
-                  const string& issuance_plan);
+   // owner actions
+   ACTION sellans( const name& submitter, const string& ans_name, const asset& ask_price );
+   ACTION acceptbid( const name& submitter, const uint64_t& ans_id, const name& bidder );
 
-   ACTION addproducer(const name& submiter,
-                  const name& owner,
-                  const string& logo_uri,
-                  const string& org_name,
-                  const string& org_info,
-                  const name& dao_code,
-                  const string& reward_shared_plan,
-                  const string& manifesto,
-                  const string& issuance_plan);
+   //bidder actions
+   
+   //query actions
+   ACTION ansbidscope( const name& ans_type, const uint64_t& ans_id) {
+         check( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), "ans type invalid: " + ans_type.to_string() );
 
-   ACTION setstatus( const name& submiter, const name& owner, const name& status);
+         auto ans_type_id  = AnsTypeVals.at( ans_type );
+         auto scope        = _get_ans_bid_scope( ans_type_id, ans_id );
+         check( false,     "scope: " + to_string(scope) );
+   };
 
    private:
-      global_singleton    _global;
-      global_t            _gstate;
-      producer_t::table   _producer_tbl;
+      //private methods
+      uint64_t _get_ans_bid_scope( const uint64_t& ans_type_id, const uint64_t& ans_id ) {
+         return(  (ans_type_id << 56) | ans_id );
+      }
 
-      void _set_producer(const name& owner,
-                  const string& logo_uri,
-                  const string& org_name,
-                  const string& org_info,
-                  const name& dao_code,
-                  const string& reward_shared_plan,
-                  const string& manifesto,
-                  const string& issuance_plan);
+      void _add_ans(       const name& submitter, 
+                           const name& ans_type, 
+                           const string& ans_name, 
+                           const string& ans_content, 
+                           const uint64_t& duration );
+
+      void _renew_ans(     const name& owner, 
+                           const name& ans_type, 
+                           const uint64_t& ans_id,
+                           const uint64_t& duration );
+
+      void _bid_ans(       const name& bidder, 
+                           const asset& bid_price, 
+                           const name& ans_type, 
+                           const uint64_t& ans_id );
+
 };
 } //namespace amax
