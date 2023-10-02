@@ -51,7 +51,6 @@ void ans::ontransfer( name from, name to, asset quantity, string memo ) {
       CHECKC( ans_content.size() < MAX_CONTENT_SIZE, err::OVERSIZED, "ANS content oversized" )
       CHECKC( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), err::PARAM_ERROR, "reg memo has incorrect ans_type" )
      
-
       auto duration_seconds   = mul( MONTH_SECONDS, 
                                     div( quantity.amount, _g.ns_monthly_fee.amount, SYS_PRECISION ), 
                                     SYS_PRECISION );

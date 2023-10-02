@@ -1,5 +1,0 @@
-/Users/richardchen/work/wasm.contracts/ans.contracts/build/contracts/CMakeFiles/edit_cache.dir
-/Users/richardchen/work/wasm.contracts/ans.contracts/build/contracts/CMakeFiles/rebuild_cache.dir
-/Users/richardchen/work/wasm.contracts/ans.contracts/build/contracts/ans/CMakeFiles/ans.dir
-/Users/richardchen/work/wasm.contracts/ans.contracts/build/contracts/ans/CMakeFiles/edit_cache.dir
-/Users/richardchen/work/wasm.contracts/ans.contracts/build/contracts/ans/CMakeFiles/rebuild_cache.dir
