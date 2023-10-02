@@ -60,6 +60,7 @@ class [[eosio::contract("ans.xtransfer")]] ans_xtransfer : public contract {
   
    ans_xtransfer(eosio::name receiver, eosio::name code, datastream<const char*> ds): contract(receiver, code, ds) {}
 
+   ACTION test() { check(false, "test" ); }
    /**
     * @brief ANS entry applicant, owner or bidder to send AMAX
     *          @memo: 
