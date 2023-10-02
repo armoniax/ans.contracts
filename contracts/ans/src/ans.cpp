@@ -19,8 +19,10 @@ using namespace wasm::safemath;
  * @brief ANS entry applicant, owner or bidder to send AMAX
  *       - case-1: applicant to pay for new entry
  *          @memo: reg:$ans_type:$ans_name:$ans_content:$ask_price
+ * 
  *       - case-2: to pay for renewing/extending the period
  *          @memo: renew:$owner:$ans_type:$ans_id
+ * 
  *       - case-3: bidder to pay for bidding for an existing ANS entry
  *          @memo: bid:$ans_type:$ans_id
  */
