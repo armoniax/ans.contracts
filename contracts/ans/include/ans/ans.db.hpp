@@ -138,7 +138,7 @@ TBL ans_registry_t {
     uint64_t by_owner()const    { return owner.value; }
     checksum256 by_name()const  { return HASH256(ans_name); }
 
-    typedef eosio::multi_index<"ansregistry"_n, ans_registry_t,
+    typedef eosio::multi_index<"registry"_n, ans_registry_t,
         indexed_by<"owneridx"_n,    const_mem_fun<ans_registry_t, uint64_t,     &ans_registry_t::by_owner>>,
         indexed_by<"nameidx"_n,     const_mem_fun<ans_registry_t, checksum256,  &ans_registry_t::by_name>>
     > tbl_t;
@@ -158,7 +158,7 @@ TBL ans_bid_t {
     uint64_t primary_key()const { return bidder.value; }
     uint64_t by_bid_price_inv()const { return std::numeric_limits< int64_t >::max() - bid_price.amount; }
 
-    typedef eosio::multi_index<"ansbids"_n, ans_bid_t,
+    typedef eosio::multi_index<"bids"_n, ans_bid_t,
         indexed_by<"bidpriceidx"_n,     const_mem_fun<ans_bid_t, uint64_t,  &ans_bid_t::by_bid_price_inv>>
     > tbl_t;
 
