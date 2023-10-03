@@ -84,6 +84,13 @@ string_view trim(string_view sv) {
     return sv;
 }
 
+std::string str_tolower(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(), 
+                   [](unsigned char c){ return std::tolower(c); } // correct
+                  );
+    return s;
+}
+
 vector<string_view> split(string_view str, string_view delims = " ")
 {
     vector<string_view> res;
@@ -115,7 +122,6 @@ uint64_t to_uint64(string_view s, const char* err_title) {
     CHECK(errno == 0, string(err_title) + ": convert str to uint64 error: " + std::strerror(errno));
     return ret;
 }
-
 
 template <class T>
 void precision_from_decimals(int8_t decimals, T& p10)

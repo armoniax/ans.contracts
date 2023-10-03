@@ -33,13 +33,14 @@ void ans_xtransfer::ontransfer( name from, name to, asset quantity, string memo 
     if( _self == from ) return;
     if( to != _self ) return;
 
+    CHECKC( memo.size() < MAX_MEMO_SIZE, err::OVERSIZED, "memo oversized" )
     CHECKC( quantity.amount > 0, err::NOT_POSITIVE, "must only transfer positive quantity" )
     auto from_bank              = get_first_receiver();
 
     auto parts                  = split( memo, ":" );
     auto param_size             = parts.size();
     CHECKC( param_size <= 2,    err::PARAM_ERROR, "invalid memo format" );
-    auto ans_alias              = param_size == 1 ? memo : string(parts[0]);
+    auto ans_alias              = param_size == 1 ? memo : str_tolower( string(trim(parts[0])) );
     auto submemo                = param_size == 1 ? "" :   string(parts[1]); 
 
     auto ans_registry           = ans_registry_t::tbl_t(_g.registry_contract, AnsType::ALIAS.value);

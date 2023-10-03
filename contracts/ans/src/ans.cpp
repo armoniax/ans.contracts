@@ -44,9 +44,9 @@ void ans::ontransfer( name from, name to, asset quantity, string memo ) {
 
    if( flag == "reg" ) {   //register a new ANS entry, @memo: reg:$ans_type:$ans_name:$ans_content
       CHECKC(param_size == 4, err::MEMO_FORMAT_ERROR, "reg memo format invalid" )
-      auto ans_type           = name(parts[1]);
-      auto ans_name           = string(parts[2]);
-      auto ans_content        = string(parts[3]);
+      auto ans_type           = name( trim( parts[1]) );
+      auto ans_name           = str_tolower( string(trim( parts[2])) );
+      auto ans_content        = string( trim( string(parts[3]) ));
       CHECKC( ans_name.size() < MAX_ANS_KEY_SIZE, err::OVERSIZED, "ANS name oversized" )
       CHECKC( ans_content.size() < MAX_CONTENT_SIZE, err::OVERSIZED, "ANS content oversized" )
       CHECKC( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), err::PARAM_ERROR, "reg memo has incorrect ans_type" )
@@ -59,9 +59,9 @@ void ans::ontransfer( name from, name to, asset quantity, string memo ) {
 
    } else if( flag == "renew" ) { //renew an existing ANS entry, @memo: renew:$owner:$ans_type:$ans_id
       CHECKC(parts.size() == 4, err::MEMO_FORMAT_ERROR, "renew memo format invalid" )
-      auto owner              = name(parts[1]);
-      auto ans_type           = name(parts[2]);
-      auto ans_id             = stoi( string(parts[3]) );
+      auto owner              = name( trim(string(parts[1]) ));
+      auto ans_type           = name( trim(string(parts[2]) ));
+      auto ans_id             = stoi( string(trim(string(parts[3]) )));
       CHECKC( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), err::PARAM_ERROR, "renew memo has incorrect ans_type" )
 
       auto duration_seconds   = mul( MONTH_SECONDS, 
@@ -72,8 +72,8 @@ void ans::ontransfer( name from, name to, asset quantity, string memo ) {
 
    } else if( flag == "bid" ) {  //bid an existing ANS entry, @memo: bid:$ans_scope:$ans_id
       CHECKC(parts.size() == 3, err::MEMO_FORMAT_ERROR, "bid memo format invalid" )
-      auto ans_type           = name(parts[1]);
-      auto ans_id             = stoi( string(parts[2]) );
+      auto ans_type           = name( trim(string(parts[1]) ));
+      auto ans_id             = stoi( string(trim(string(parts[2]) )));
    
       _bid_ans(from, quantity, ans_type, ans_id);
 
@@ -140,7 +140,7 @@ ACTION ans::setansvalue( const name& submitter, const name& ans_type, const uint
    CHECKC( ans_itr->ans_content != ans_content, err::PARAM_ERROR, "ans_content is the same" )
 
    db::set(ans_registry, ans_itr, _self, [&]( auto& r, bool is_new ) {
-      r.ans_content         = ans_content;
+      r.ans_content         = trim( ans_content );
    });
 }
 

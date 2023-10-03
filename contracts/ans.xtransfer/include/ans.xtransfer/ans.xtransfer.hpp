@@ -16,7 +16,7 @@ using namespace wasm::db;
 using namespace eosio;
 
 static constexpr uint32_t RATIO_BOOST           = 10000;
-
+static constexpr uint32_t MAX_MEMO_SIZE         = 2048; 
 
 #define CHECKC(exp, code, msg) \
    { if (!(exp)) eosio::check(false, string("[[") + std::to_string((int)code) + string("]] ") + msg); }
