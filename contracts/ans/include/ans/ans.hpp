@@ -94,6 +94,8 @@ class [[eosio::contract("ans")]] ans : public contract {
       _g.ns_advance_pay_in_month                       = conf.ns_advance_pay_in_month;       
    }
 
+   ACTION rmans( const name& submitter, const name& ans_type, const uint64_t& ans_id );
+
    /**
     * @brief ANS entry applicant, owner or bidder to send AMAX
     *       - case-1: applicant to pay for new entry
@@ -115,6 +117,10 @@ class [[eosio::contract("ans")]] ans : public contract {
    ACTION cancelbid( const name& submitter, const name& ans_type, const uint64_t& ans_id );
 
    //query actions
+   ACTION ansnamehash( const string& ans_name ) {
+      check( false, "ans_name_hash: " + to_hex( HASH256(ans_name) ));
+   }
+
    ACTION bidscope( const name& ans_type, const uint64_t& ans_id) {
          check( AnsTypeVals.find( ans_type ) != AnsTypeVals.end(), "ans type invalid: " + ans_type.to_string() );
 

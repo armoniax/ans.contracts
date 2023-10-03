@@ -78,9 +78,13 @@ namespace AnsType {
 
     static constexpr eosio::name BTC            { "btc"_n       }; //Bitcoin addr
     static constexpr eosio::name ETH            { "eth"_n       }; //EVM type addr
+
+    static constexpr eosio::name MAX            { "max"_n       }; //void type
 }
 
 //once used, it can nenver be changed to avoid data dirtyness issue
+// its value must be smaller than 257
+// Usage: biz scope 7th-byte of a unit64_t value
 const std::map<name, uint64_t> AnsTypeVals {
     { AnsType::ALIAS,           0   },
     { AnsType::A,               1   },
@@ -90,6 +94,8 @@ const std::map<name, uint64_t> AnsTypeVals {
     { AnsType::TXT,             9   },
     { AnsType::BTC,             100 },
     { AnsType::ETH,             101 },
+
+    { AnsType::MAX,             257 }
 };
 
 struct conf_st {
@@ -140,7 +146,7 @@ TBL ans_registry_t {
     EOSLIB_SERIALIZE( ans_registry_t, (id)(ans_name)(ans_content)(owner)(ask_price)(created_at)(expired_at) )
 };
 
-//scope: [ans_type:0 | ans_id : 1-7 ] 
+//scope: [ans_type:7th | ans_id : 0-6 ] 
 TBL ans_bid_t {
     name                        bidder;
     asset                       bid_price;

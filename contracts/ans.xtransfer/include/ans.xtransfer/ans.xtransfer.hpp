@@ -2,6 +2,8 @@
 #include <wasm_db.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/action.hpp>
+#include <eosio/singleton.hpp>
+#include <eosio/system.hpp>
 
 #include <string>
 
@@ -13,11 +15,18 @@ using std::vector;
 using namespace wasm::db;
 using namespace eosio;
 
-// static constexpr eosio::name active_perm{"active"_n};
-
 #define CHECKC(exp, code, msg) \
-   { if (!(exp)) eosio::check(false, string("[[") + to_string((int)code) + string("]] ") + msg); }
+   { if (!(exp)) eosio::check(false, string("[[") + std::to_string((int)code) + string("]] ") + msg); }
 
+#define NTBL(name) struct [[eosio::table(name), eosio::contract("ans.xtransfer")]]
+
+NTBL("global") global_t {
+   name                        admin;
+   name                        registry_contract;
+
+   EOSLIB_SERIALIZE( global_t, (admin)(registry_contract) )
+};
+typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
 enum class err: uint8_t {
    NONE                 = 0,
@@ -54,24 +63,34 @@ enum class err: uint8_t {
  */
 class [[eosio::contract("ans.xtransfer")]] ans_xtransfer : public contract {
    private:
+      global_singleton        _global;
+      global_t                _g;
 
    public:
       using contract::contract;
   
-   ans_xtransfer(eosio::name receiver, eosio::name code, datastream<const char*> ds): contract(receiver, code, ds) {}
+      ans_xtransfer(eosio::name receiver, eosio::name code, datastream<const char*> ds): contract(receiver, code, ds),
+         _global(get_self(), get_self().value) {  _g = _global.exists() ? _global.get() : global_t{}; }
 
-   ACTION test() { check(false, "test" ); }
-   /**
-    * @brief ANS entry applicant, owner or bidder to send AMAX
-    *          @memo: 
-    *          - format-1: $alias
-    *          - format-2: $alias:$submemo
-    */
-   [[eosio::on_notify("*::transfer")]]
-   void ontransfer( name from, name to, asset quantity, string memo );
+      ~ans_xtransfer() { _global.set( _g, get_self() ); }
+
+      ACTION init( const name& registry_contract ) { 
+         CHECKC( has_auth( _self ) || has_auth( "armoniaadmin"_n ), err::NO_AUTH, "no auth" )
+         _g.registry_contract = registry_contract;
+      }
+
+      /**
+       * @brief ANS entry applicant, owner or bidder to send AMAX
+       *          @memo: 
+       *          - format-1: $alias
+       *          - format-2: $alias:$submemo
+       */
+      [[eosio::on_notify("*::transfer")]]
+      void ontransfer( name from, name to, asset quantity, string memo );
 
    private:
       //private methods
 
 };
+
 } //namespace amax

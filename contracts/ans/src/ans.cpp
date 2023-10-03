@@ -144,6 +144,18 @@ ACTION ans::setansvalue( const name& submitter, const name& ans_type, const uint
    });
 }
 
+ACTION ans::rmans( const name& submitter, const name& ans_type, const uint64_t& ans_id ) {
+   require_auth( submitter );
+
+   // auto ans_registry       = ans_registry_t::tbl_t(_self, ans_type.value);
+   // auto ans_itr            = ans_registry.find( ans_id );
+   // CHECKC( ans_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ans registry not found for ans_id: " + to_string(ans_id) )
+   // CHECKC( ans_itr->owner == submitter, err::NO_AUTH, "submitter is not the ans owner" )
+   // CHECKC( ans_itr->ans_content != ans_content, err::PARAM_ERROR, "ans_content is the same" )
+
+   // db::del( ans_registry, ans_id );
+}
+
 //bidder actions
 ACTION ans::cancelbid( const name& submitter, const name& ans_type, const uint64_t& ans_id ) {
    require_auth( submitter );
@@ -229,7 +241,7 @@ void ans::_bid_ans(        const name& bidder,
    CHECKC( ans_reg_itr != ans_registry.end(), err::RECORD_NOT_FOUND, "ANS registry not found: " + ans_reg_itr->ans_name )
    CHECKC( ans_reg_itr->ask_price.amount > 0, err::NOT_STARTED, "ANS not yet for sale: " + ans_reg_itr->ans_name )
 
-   if( ans_bid_itr->expired_at < current_time_point() || 
+   if( ans_reg_itr->expired_at < current_time_point() || 
        ans_bid_itr->bid_price >= ans_reg_itr->ask_price ) { //transfer ownership
       db::set(ans_registry, ans_reg_itr, _self, [&]( auto& r, bool is_new ) {
          r.owner           = bidder;

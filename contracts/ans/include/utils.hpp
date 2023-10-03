@@ -192,3 +192,16 @@ uint128_t make128key(uint64_t a, uint64_t b) {
 checksum256 make256key(uint64_t a, uint64_t b, uint64_t c, uint64_t d) {
     return checksum256::make_from_word_sequence<uint64_t>(a,b,c,d);
 }
+
+static string to_hex(const checksum256 &hashed) {
+    // Construct variables
+    string result;
+    const char *hex_chars = "0123456789abcdef";
+    const auto bytes = hashed.extract_as_byte_array();
+    // Iterate hash and build result
+    for (uint32_t i = 0; i < bytes.size(); ++i) {
+        (result += hex_chars[(bytes.at(i) >> 4)]) += hex_chars[(bytes.at(i) & 0x0f)];
+    }
+    // Return string
+    return result;
+}

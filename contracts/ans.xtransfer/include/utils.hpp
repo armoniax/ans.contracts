@@ -116,6 +116,7 @@ uint64_t to_uint64(string_view s, const char* err_title) {
     return ret;
 }
 
+
 template <class T>
 void precision_from_decimals(int8_t decimals, T& p10)
 {
