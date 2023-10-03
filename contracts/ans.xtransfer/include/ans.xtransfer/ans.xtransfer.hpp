@@ -15,16 +15,21 @@ using std::vector;
 using namespace wasm::db;
 using namespace eosio;
 
+static constexpr uint32_t RATIO_BOOST           = 10000;
+
+
 #define CHECKC(exp, code, msg) \
    { if (!(exp)) eosio::check(false, string("[[") + std::to_string((int)code) + string("]] ") + msg); }
 
 #define NTBL(name) struct [[eosio::table(name), eosio::contract("ans.xtransfer")]]
 
 NTBL("global") global_t {
-   name                        admin;
-   name                        registry_contract;
+   name                       admin;
+   name                       registry_contract;
+   name                       fee_collector;
+   uint64_t                   fee_rate = 1;        //1 out of 10K          
 
-   EOSLIB_SERIALIZE( global_t, (admin)(registry_contract) )
+   EOSLIB_SERIALIZE( global_t, (admin)(registry_contract)(fee_collector)(fee_rate) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
@@ -74,9 +79,18 @@ class [[eosio::contract("ans.xtransfer")]] ans_xtransfer : public contract {
 
       ~ans_xtransfer() { _global.set( _g, get_self() ); }
 
-      ACTION init( const name& registry_contract ) { 
+      ACTION init( const name& admin, const name& registry_contract ) { 
          CHECKC( has_auth( _self ) || has_auth( "armoniaadmin"_n ), err::NO_AUTH, "no auth" )
+
+         _g.admin             = admin;
          _g.registry_contract = registry_contract;
+      }
+
+      ACTION setfee( const name& fee_collector, const uint64_t& fee_rate ) {
+         CHECKC( has_auth( _self ) || has_auth( _g.admin ), err::NO_AUTH, "no auth" )
+
+         _g.fee_collector     = fee_collector;
+         _g.fee_rate          = fee_rate;
       }
 
       /**

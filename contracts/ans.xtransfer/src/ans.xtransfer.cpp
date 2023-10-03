@@ -30,27 +30,34 @@ static string to_hex(const checksum256 &hashed) {
  */
 [[eosio::on_notify("*::transfer")]]
 void ans_xtransfer::ontransfer( name from, name to, asset quantity, string memo ) {
-   if( _self == from ) return;
-   if( to != _self ) return;
+    if( _self == from ) return;
+    if( to != _self ) return;
 
-   CHECKC( quantity.amount > 0, err::NOT_POSITIVE, "must only transfer positive quantity" )
-   auto from_bank = get_first_receiver();
+    CHECKC( quantity.amount > 0, err::NOT_POSITIVE, "must only transfer positive quantity" )
+    auto from_bank              = get_first_receiver();
 
-   auto parts                 = split( memo, ":" );
-   auto param_size            = parts.size();
-   CHECKC( param_size <= 2,   err::PARAM_ERROR, "invalid memo format" );
-   auto ans_alias             = param_size == 1 ? memo : string(parts[0]);
-   auto submemo               = param_size == 1 ? "" :   string(parts[1]); 
+    auto parts                  = split( memo, ":" );
+    auto param_size             = parts.size();
+    CHECKC( param_size <= 2,    err::PARAM_ERROR, "invalid memo format" );
+    auto ans_alias              = param_size == 1 ? memo : string(parts[0]);
+    auto submemo                = param_size == 1 ? "" :   string(parts[1]); 
 
-   auto ans_registry          = ans_registry_t::tbl_t(_g.registry_contract, AnsType::ALIAS.value);
-   auto ans_name_idx          = ans_registry.get_index<"nameidx"_n>();
-   auto ans_reg_itr           = ans_name_idx.find( HASH256(ans_alias) );
-   CHECKC( ans_reg_itr != ans_name_idx.end(), err::RECORD_NOT_FOUND, "ANS alias not found: " + ans_alias + " \nhash256(alias) = " + to_hex(HASH256(ans_alias)) )
+    auto ans_registry           = ans_registry_t::tbl_t(_g.registry_contract, AnsType::ALIAS.value);
+    auto ans_name_idx           = ans_registry.get_index<"nameidx"_n>();
+    auto ans_reg_itr            = ans_name_idx.find( HASH256(ans_alias) );
+    CHECKC( ans_reg_itr != ans_name_idx.end(), err::RECORD_NOT_FOUND, "ANS alias not found: " + ans_alias + " \nhash256(alias) = " + to_hex(HASH256(ans_alias)) )
 
-   auto dest_account          = name( ans_reg_itr->ans_content );
-   CHECKC( is_account( dest_account ), err::ACCOUNT_INVALID, "alias account invalid: " + dest_account.to_string() )
+    auto dest_account           = name( ans_reg_itr->ans_content );
+    CHECKC( is_account( dest_account ), err::ACCOUNT_INVALID, "alias account invalid: " + dest_account.to_string() )
 
-   TRANSFER( from_bank, dest_account, quantity, submemo );
+    auto dest_quant             = quantity;
+    if( _g.fee_rate > 0 && is_account( _g.fee_collector ) ) {
+        auto fees               = quantity;
+        fees.amount             = quantity.amount * _g.fee_rate / RATIO_BOOST;
+        TRANSFER( from_bank, _g.fee_collector, fees, "x" );
+        dest_quant              -= fees;
+    }
+    TRANSFER( from_bank, dest_account, dest_quant, submemo );
 }
 
 
