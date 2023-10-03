@@ -50,14 +50,14 @@ void ans_xtransfer::ontransfer( name from, name to, asset quantity, string memo 
     auto dest_account           = name( ans_reg_itr->ans_content );
     CHECKC( is_account( dest_account ), err::ACCOUNT_INVALID, "alias account invalid: " + dest_account.to_string() )
 
-    auto dest_quant             = quantity;
-    if( _g.fee_rate > 0 && is_account( _g.fee_collector ) ) {
-        auto fees               = quantity;
-        fees.amount             = quantity.amount * _g.fee_rate / RATIO_BOOST;
-        TRANSFER( from_bank, _g.fee_collector, fees, "x" );
-        dest_quant              -= fees;
-    }
-    TRANSFER( from_bank, dest_account, dest_quant, submemo );
+    // auto dest_quant             = quantity;
+    // if( _g.fee_rate > 0 && is_account( _g.fee_collector ) ) {
+    //     auto fees               = quantity;
+    //     fees.amount             = quantity.amount * _g.fee_rate / RATIO_BOOST;
+    //     TRANSFER( from_bank, _g.fee_collector, fees, "x" );
+    //     dest_quant              -= fees;
+    // }
+    TRANSFER( from_bank, dest_account, quantity, submemo );
 }
 
 

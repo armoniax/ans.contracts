@@ -27,7 +27,7 @@ NTBL("global") global_t {
    name                       admin;
    name                       registry_contract;
    name                       fee_collector;
-   uint64_t                   fee_rate = 0;        //E.g. 1 out of 10K          
+   uint64_t                   fee_rate = 1;        //E.g. 1 out of 10K          
 
    EOSLIB_SERIALIZE( global_t, (admin)(registry_contract)(fee_collector)(fee_rate) )
 };
