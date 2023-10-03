@@ -26,7 +26,7 @@ static constexpr uint32_t RATIO_BOOST           = 10000;
 NTBL("global") global_t {
    name                       admin;
    name                       registry_contract;
-   name                       fee_collector;
+   name                       fee_collector     = "nobody"_n;
    uint64_t                   fee_rate          = 0;        //to be set, E.g. 1 out of 10K          
 
    EOSLIB_SERIALIZE( global_t, (admin)(registry_contract)(fee_collector)(fee_rate) )
