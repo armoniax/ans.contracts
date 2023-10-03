@@ -67,7 +67,7 @@ static constexpr uint64_t SYS_PRECISION         = 100'000'000;
 
 
 namespace AnsType {
-    static constexpr eosio::name ALIAS          { "alias"_n     }; //alias to account name/address
+    static constexpr eosio::name ALIAS          { "alias"_n     }; //alias to account name
 
     static constexpr eosio::name A              { "a"_n         }; //IPV4 address
     static constexpr eosio::name AAAA           { "aaaa"_n      }; //IPv6 address
